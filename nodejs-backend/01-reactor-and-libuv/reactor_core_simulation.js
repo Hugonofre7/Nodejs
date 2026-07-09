@@ -45,5 +45,8 @@ for (let i = 1; i <= 8; i++) {
     readFileWithTimestamp('./large-file.txt', i);
 }
 
+/*
+UV_THREADPOOL_SIZE=1 node reactor_core_simulation.js
 
-
+UV_THREADPOOL_SIZE=8 node reactor_core_simulation.js
+*/
