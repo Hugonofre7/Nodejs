@@ -1,0 +1,3 @@
+Este archivo es utilizado para probar
+ operaciones de lectura bloqueantes ys
+ no bloqueantes en Node.js.
