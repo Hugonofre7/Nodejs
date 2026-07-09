@@ -32,3 +32,18 @@ readFileNonBlocking(filepath, (err, data) => {
 });
 
 console.log(Date.now(), 'Non blocking call finished');
+
+function readFileWithTimestamp(filepath, id) {
+    console.log(Date.now(), `Starting file read for ID: ${id}`);
+
+    fs.readFile(filepath, 'utf8', (err, data) => {
+        console.log(Date.now(), `Finished file read for ID: ${id}`);
+});
+}
+
+for (let i = 1; i <= 8; i++) {
+    readFileWithTimestamp('./large-file.txt', i);
+}
+
+
+
