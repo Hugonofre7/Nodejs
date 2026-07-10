@@ -50,3 +50,15 @@ UV_THREADPOOL_SIZE=1 node reactor_core_simulation.js
 
 UV_THREADPOOL_SIZE=8 node reactor_core_simulation.js
 */
+
+console.log('1 - sincrónico')
+process.nextTick(() => console.log('2 - nextTick'))
+setImmediate(() => console.log('3 - setImmediate'))
+setTimeout(() => console.log('4 - setTimeout 0'), 0)
+Promise.resolve().then(() => console.log('5 - Promise'))
+console.log('6 - sincrónico')
+
+// Nota:
+// En este experimento, setImmediate() se ejecutó antes que setTimeout(0).
+// El orden entre ambos no está garantizado cuando se programan desde el
+// código principal y puede variar según el contexto y la versión de Node.js.
