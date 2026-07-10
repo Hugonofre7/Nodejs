@@ -62,3 +62,49 @@ console.log('6 - sincrónico')
 // En este experimento, setImmediate() se ejecutó antes que setTimeout(0).
 // El orden entre ambos no está garantizado cuando se programan desde el
 // código principal y puede variar según el contexto y la versión de Node.js.
+
+
+function simulateReactor(tasks) {
+
+    for (let i = 0; i < tasks.length; i++) {
+
+        const task = tasks[i];
+
+        if (task.type === 'io') {
+
+            console.log(Date.now(), `Task ${task.id} started (IO)`);
+
+            fs.readFile(task.filepath, 'utf8', (err, data) => {
+
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+
+                console.log(Date.now(), `Task ${task.id} finished (IO)`);
+            });
+
+        } else if (task.type === 'cpu') {
+
+            console.log(Date.now(), `Task ${task.id} started (CPU)`);
+
+            let result = 0;
+
+            for (let j = 0; j < task.iterations; j++) {
+                result += j;
+            }
+
+            console.log(Date.now(), `Task ${task.id} finished (CPU)`);
+        }
+    }
+}
+
+const tasks = [
+    { id: 1, type: 'io', filepath: './large-file.txt' },
+    { id: 2, type: 'cpu', iterations: 100000000 },
+    { id: 3, type: 'io', filepath: './large-file.txt' },
+    { id: 4, type: 'cpu', iterations: 50000000 },
+    { id: 5, type: 'io', filepath: './large-file.txt' }
+]
+
+simulateReactor(tasks)
