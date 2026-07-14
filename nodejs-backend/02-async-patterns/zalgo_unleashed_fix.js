@@ -7,13 +7,16 @@ const cache = {
 
 function readCache(key, callback) {
     if (cache[key]) {
+    process.nextTick(() => {
         callback(null, cache[key]);
+    });
     } else {
         setTimeout(() => {
             callback(new Error('Key not found in cache'), null);
         }, 1000);
     }
 }
+
 
 console.log('1 - antes de readCache')
 
