@@ -1,4 +1,3 @@
-
 const cache = {
     'user:1': {
         name: 'Hugo',
@@ -70,6 +69,53 @@ emitter.once('dataReceived', (data) => {
 })
 
 emitter.emit('dataReceived', { payload: 'test' })
+
+class DataBroker extends EventEmitter {
+
+    constructor() {
+        super();
+
+        this.subscribers = new Map();
+        this.maxSubscribers = 5;
+    }
+
+    subscribe(userId) {
+        if (this.subscribers.size >= this.maxSubscribers) {
+            throw new Error('Maximum subscribers reached');
+        }
+
+        const handler = (data) => {
+            console.log(`User ${userId} received:`, data);
+        };
+
+        this.subscribers.set(userId, handler);
+
+        this.on('data', handler);
+    }
+    publish(data) {
+        this.emit('data', data);
+    }
+    unsubscribe(userId) {
+        const handler = this.subscribers.get(userId);
+
+        if (handler) {
+            this.off('data', handler);
+            this.subscribers.delete(userId);
+        }
+    }
+}
+
+const broker = new DataBroker();
+
+broker.subscribe('user:1');
+broker.subscribe('user:2');
+broker.subscribe('user:3');
+
+broker.publish({ payload: 'health-report' });
+
+broker.unsubscribe('user:2');
+
+broker.publish({ payload: 'second-report' });
 
 console.log('1 - antes de readCache')
 
