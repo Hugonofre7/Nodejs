@@ -78,3 +78,43 @@ safe.cleanup('user:1')
 console.log('Listeners después de cleanup:', safe.listenerCount('data'))
 
 safe.emit('data', { payload: 'second' })
+
+
+function createLeakDetector(emitter) {
+
+    const intervalId = setInterval(() => {
+
+        const events = emitter.eventNames();
+
+        for (const eventName of events) {
+            const currentListeners = emitter.listenerCount(eventName);
+            const maxListeners = emitter.getMaxListeners();
+
+            if (currentListeners >= maxListeners * 0.8) {
+                console.log(
+                    `Warning: ${eventName} has ${currentListeners} listeners`
+                );
+            }
+        }
+
+    }, 2000);
+
+    return {
+        stop() {
+            clearInterval(intervalId);
+        }
+    };
+}
+
+const detector = createLeakDetector(safe)
+
+// Agrega listeners para disparar el warning
+for (let i = 0; i < 8; i++) {
+    safe.on('data', () => {})
+}
+
+// Espera 3 segundos y detén el detector
+setTimeout(() => {
+    detector.stop()
+    console.log('Detector detenido')
+}, 3000)
