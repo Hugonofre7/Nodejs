@@ -118,3 +118,38 @@ setTimeout(() => {
     detector.stop()
     console.log('Detector detenido')
 }, 3000)
+
+
+class SafeEventSystem extends LeakSafeEmitter {
+
+    constructor() {
+        super();
+
+        this.detector = createLeakDetector(this);
+    }
+
+    safeOn(userId, eventName, handler) {
+
+        monitorListeners(this, eventName);
+
+        super.safeOn(userId, eventName, handler);
+
+    }
+    destroy() {
+
+    for (const userId of this.handlers.keys()) {
+        this.cleanup(userId);
+    }
+
+    this.detector.stop();
+
+   }
+
+}
+
+const system = new SafeEventSystem()
+system.safeOn('user:1', 'data', (d) => console.log('user:1:', d))
+system.safeOn('user:2', 'data', (d) => console.log('user:2:', d))
+system.emit('data', { payload: 'test' })
+system.destroy()
+console.log('Listeners después de destroy:', system.listenerCount('data'))
