@@ -70,3 +70,70 @@ checkAllServicesSettled(services)
             }
         })
     })
+
+async function processWithLimit(tasks, limit) {
+
+    let currentIndex = 0;
+    let running = 0;
+    const results = [];
+
+    return new Promise((resolve, reject) => {
+
+        const worker = async () => {
+
+            if (currentIndex >= tasks.length) {
+                return;
+            }
+
+            const index = currentIndex;
+            currentIndex++;
+
+            running++;
+
+            try {
+                const result = await tasks[index]();
+                results[index] = result;
+
+            } catch(error) {
+                reject(error);
+                return;
+
+            } finally {
+                running--;
+
+                if (running === 0 && currentIndex >= tasks.length) {
+                    resolve(results);
+                } else {
+                    worker();
+                }
+            }
+        };
+
+        // Aquí arrancamos los workers
+        for (let i = 0; i < limit; i++) {
+            worker();
+        }
+
+    });
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const tasks = [1, 2, 3, 4, 5].map(id =>
+    async () => {
+        console.log(`Inicio task-${id}`);
+
+        await delay(Math.random() * 1000);
+
+        console.log(`Fin task-${id}`);
+
+        return `task-${id} completada`;
+    }
+);
+
+processWithLimit(tasks, 2)
+    .then(results => {
+        console.log(results);
+    });
