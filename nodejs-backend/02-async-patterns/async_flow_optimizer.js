@@ -170,3 +170,66 @@ recursiveIterative(100000)
         console.timeEnd('recursiveIterative')
         console.log(result)
     })
+
+class AsyncTaskManager {
+
+    constructor(services, tasks, limit) {
+
+        this.services = services;
+        this.tasks = tasks;
+        this.limit = limit;
+
+    }
+
+    async run() {
+
+        const startTime = Date.now();
+
+        const serviceResults = await checkAllServicesSettled(this.services);
+
+        const hasFailure = serviceResults.some(
+            result => result.status === 'rejected'
+        );
+
+        if (hasFailure) {
+            return {
+                success: false,
+                services: serviceResults,
+                tasks: [],
+                error: 'Servicios no disponibles'
+            };
+        }
+
+        const taskResults = await processWithLimit(
+            this.tasks,
+            this.limit
+        );
+
+        const totalTime = Date.now() - startTime;
+
+        return {
+            success: true,
+            totalTime,
+            services: serviceResults,
+            completedTasks: taskResults.length,
+            tasks: taskResults
+        };
+    }
+}
+
+const healthyServices= [
+    { name: 'auth', shouldFail: false },
+    { name: 'payment', shouldFail: true },
+    { name: 'user', shouldFail: false }
+];
+
+const manager = new AsyncTaskManager(
+    healthyServices,
+    tasks,
+    2
+);
+
+manager.run()
+    .then(report => {
+        console.log('Reporte final:', report);
+    });
