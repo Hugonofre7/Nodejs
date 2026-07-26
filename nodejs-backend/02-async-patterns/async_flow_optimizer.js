@@ -137,3 +137,36 @@ processWithLimit(tasks, 2)
     .then(results => {
         console.log(results);
     });
+
+function recursiveIterativePromise(n) {
+    return new Promise((resolve) => {
+        const loop = (i) => {
+            if (i <= 0) return resolve('Done')
+            setImmediate(() => loop(i - 1))
+        }
+        loop(n)
+    })
+}
+
+console.time('recursiveIterativePromise');
+
+recursiveIterativePromise(100000)
+    .then(result => {
+        console.timeEnd('recursiveIterativePromise');
+        console.log(result);
+    })
+    .catch(err => console.error(err));
+
+async function recursiveIterative(n) {
+    while (n > 0) {
+        n--
+    }
+    return 'Done'
+}
+
+console.time('recursiveIterative')
+recursiveIterative(100000)
+    .then(result => {
+        console.timeEnd('recursiveIterative')
+        console.log(result)
+    })
