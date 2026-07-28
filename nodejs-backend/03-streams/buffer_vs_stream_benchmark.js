@@ -1,5 +1,9 @@
 const fs = require('fs');
 
+const { pipeline, Transform } = require('stream');
+
+// Generación de archivo de prueba
+/*
 const data = [];
 
 for (let i = 1; i <= 500000; i++) {
@@ -21,6 +25,7 @@ fs.writeFileSync(
 );
 
 console.log('Archivo generado');
+*/
 
 function readWithBuffer(filepath) {
     const startTime = Date.now();
@@ -93,3 +98,54 @@ function readWithStream(filepath) {
 }
 
 readWithStream('large_data.json');
+
+function benchmarkPipeline(inputPath, outputPath) {
+
+    const startTime = Date.now();
+    let totalBytes = 0;
+
+    const transform = new Transform({
+
+        transform(chunk, encoding, callback) {
+
+            totalBytes += chunk.length;
+
+            callback(null, chunk);
+
+        }
+
+    });
+
+    const readStream = fs.createReadStream(inputPath);
+
+    const writeStream = fs.createWriteStream(outputPath);
+
+
+    pipeline(
+        readStream,
+        transform,
+        writeStream,
+        (error) => {
+
+            if (error) {
+                console.error('Pipeline error:', error);
+                return;
+            }
+
+            const timeUsed = Date.now() - startTime;
+
+            console.log('Pipeline benchmark');
+            console.log(`Tiempo: ${timeUsed} ms`);
+            console.log(`Bytes procesados: ${totalBytes}`);
+            console.log(`MB procesados: ${(totalBytes / 1024 / 1024).toFixed(2)} MB`
+            );
+
+        }
+    );
+
+}
+
+benchmarkPipeline(
+    'large_data.json',
+    'output_large_data.json'
+);
