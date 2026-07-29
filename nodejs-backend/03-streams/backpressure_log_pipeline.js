@@ -2,7 +2,7 @@ const fs = require('fs');
 
 const readline = require('readline');
 
-const { Transform } = require('stream');
+const { pipeline, Transform } = require('stream');
 
 const levels = ['ERROR', 'INFO', 'DEBUG'];
 
@@ -43,8 +43,8 @@ console.log('Archivo de logs generado');
 
 function createLogPipeline(inputPath, outputPath) {
     const startTime = Date.now()
-/*
     let errorLines = 0;
+/*
     let backpressureCount = 0;
 */
     let buffer = '';
@@ -66,6 +66,8 @@ function createLogPipeline(inputPath, outputPath) {
             for (const line of lines) {
 
                 if (line.includes('ERROR')) {
+
+                    errorLines++;
 
                     this.push(line + '\n');
 
@@ -98,19 +100,38 @@ function createLogPipeline(inputPath, outputPath) {
         console.error('Write error:', err);
     });
 
-    readStream
-    .pipe(errorTransform)
-    .pipe(writeStream);
+    pipeline(
+        readStream,
+        errorTransform,
+        writeStream,
+        (err) => {
 
+            if (err) {
+                return console.error('Pipeline error:', err);
+            }
+
+            console.log(
+                `Pipeline finalizado en ${Date.now() - startTime}ms`
+            );
+
+            console.log(
+                `Líneas ERROR procesadas: ${errorLines}`
+            );
+        }
+    );
+
+}
+/*
     writeStream.on('finish', () => {
 
         console.log(
             `Pipeline finalizado en ${Date.now() - startTime}ms`
         );
 
+        console.log(`Líneas ERROR procesadas: ${errorLines}`);
+
     });
 
-/*
     const rl = readline.createInterface({
         input: readStream,
         crlfDelay: Infinity
@@ -161,7 +182,6 @@ function createLogPipeline(inputPath, outputPath) {
 
     });
 */
-}
 
 createLogPipeline(
     'server_logs.txt',
