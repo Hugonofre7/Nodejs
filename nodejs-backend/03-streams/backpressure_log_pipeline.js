@@ -2,6 +2,8 @@ const fs = require('fs');
 
 const readline = require('readline');
 
+const { Transform } = require('stream');
+
 const levels = ['ERROR', 'INFO', 'DEBUG'];
 
 const services = [
@@ -41,15 +43,74 @@ console.log('Archivo de logs generado');
 
 function createLogPipeline(inputPath, outputPath) {
     const startTime = Date.now()
+/*
     let errorLines = 0;
     let backpressureCount = 0;
+*/
+    let buffer = '';
+
     const readStream = fs.createReadStream(inputPath, {
         encoding: 'utf8'
+    });
+    
+    const errorTransform = new Transform({
+
+        transform(chunk, encoding, callback) {
+
+            buffer += chunk.toString();
+
+            const lines = buffer.split('\n');
+
+            buffer = lines.pop();
+
+            for (const line of lines) {
+
+                if (line.includes('ERROR')) {
+
+                    this.push(line + '\n');
+
+                }
+
+            }
+
+            callback();
+
+        },
+        flush(callback) {
+
+            if (buffer.includes('ERROR')) {
+
+                this.push(buffer + '\n');
+            }
+
+            callback();
+        }
+
     });
 
     const writeStream = fs.createWriteStream(outputPath);
 
+    readStream.on('error', err => {
+        console.error('Read error:', err);
+    });
 
+    writeStream.on('error', err => {
+        console.error('Write error:', err);
+    });
+
+    readStream
+    .pipe(errorTransform)
+    .pipe(writeStream);
+
+    writeStream.on('finish', () => {
+
+        console.log(
+            `Pipeline finalizado en ${Date.now() - startTime}ms`
+        );
+
+    });
+
+/*
     const rl = readline.createInterface({
         input: readStream,
         crlfDelay: Infinity
@@ -99,7 +160,7 @@ function createLogPipeline(inputPath, outputPath) {
         console.log(`Backpressure activado: ${backpressureCount} veces`);
 
     });
-
+*/
 }
 
 createLogPipeline(
