@@ -41,6 +41,8 @@ console.log('Archivo de logs generado');
 
 function createLogPipeline(inputPath, outputPath) {
     const startTime = Date.now()
+    let errorLines = 0;
+    let backpressureCount = 0;
     const readStream = fs.createReadStream(inputPath, {
         encoding: 'utf8'
     });
@@ -57,12 +59,17 @@ function createLogPipeline(inputPath, outputPath) {
 
         if (line.includes('ERROR')) {
 
+            errorLines++;
+
             const canContinue = writeStream.write(line + '\n');
 
             if (!canContinue) {
+
+                backpressureCount++;
+
                 rl.pause();
-            }
         }
+}
     });
 
     writeStream.on('drain', () => {
@@ -80,9 +87,18 @@ function createLogPipeline(inputPath, outputPath) {
     });
 
     rl.on('close', () => {
-        writeStream.end()
-        console.log(`Pipeline finalizado en ${Date.now() - startTime}ms`)
-    })
+
+        writeStream.end();
+
+        console.log(
+            `Pipeline finalizado en ${Date.now() - startTime}ms`
+        );
+
+        console.log(`Líneas ERROR escritas: ${errorLines}`);
+
+        console.log(`Backpressure activado: ${backpressureCount} veces`);
+
+    });
 
 }
 
@@ -90,3 +106,4 @@ createLogPipeline(
     'server_logs.txt',
     'error_logs.txt'
 );
+
