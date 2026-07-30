@@ -56,6 +56,7 @@ _final(callback) {
 
 const errorLog = fs.createWriteStream('mux_errors.txt')
 const generalLog = fs.createWriteStream('mux_general.txt')
+
 const consoleStream = process.stdout
 
 const mux = new StreamMultiplexer([
@@ -67,10 +68,12 @@ const mux = new StreamMultiplexer([
         stream: generalLog,
         filter: null
     },
+     /*
     {
         stream: consoleStream,
         filter: null
     }
+    */
 ]);
 
 const readStream = fs.createReadStream('server_logs.txt', {
