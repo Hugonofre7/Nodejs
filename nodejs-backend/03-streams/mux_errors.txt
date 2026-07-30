@@ -1,2 +1,1 @@
 2024-01-15T10:30:00Z ERROR auth-service Request timeout
-2024-01-15T10:30:01Z INFO user-service User authenticated
