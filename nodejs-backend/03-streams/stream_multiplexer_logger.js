@@ -3,11 +3,15 @@ const fs = require('fs');
 class StreamMultiplexer extends Writable {
 
     constructor(destinations) {
-        super();
+    super();
 
-        this.destinations = destinations;
+    this.destinations = destinations.map(destination => ({
+        ...destination,
+        written: 0,
+        filtered: 0
+    }));
 
-    }
+}
 
 _write(chunk, encoding, callback) {
 
@@ -15,9 +19,18 @@ _write(chunk, encoding, callback) {
 
         try {
 
-            if (!destination.filter || destination.filter(chunk.toString())) {
+            const accepted =
+                !destination.filter || destination.filter(chunk.toString());
+
+            if (accepted) {
 
                 destination.stream.write(chunk);
+
+                destination.written++;
+
+            } else {
+
+                destination.filtered++;
 
             }
 
@@ -51,7 +64,17 @@ _final(callback) {
     callback();
 
 }
+getStats() {
 
+    return {
+        destinations: this.destinations.map(destination => ({
+            name: destination.name,
+            written: destination.written,
+            filtered: destination.filtered
+        }))
+    };
+
+    }
 }
 
 const errorLog = fs.createWriteStream('mux_errors.txt')
@@ -61,14 +84,16 @@ const consoleStream = process.stdout
 
 const mux = new StreamMultiplexer([
     {
+        name: 'errorLog',
         stream: errorLog,
         filter: null
     },
     {
+        name: 'generalLog',
         stream: generalLog,
         filter: null
     },
-     /*
+    /*
     {
         stream: consoleStream,
         filter: null
@@ -143,6 +168,7 @@ pipeline(
 
         console.log('Multiplexer pipeline finalizado');
         console.log(`ERROR detectados por Transform: ${transformCount}`);
+        console.log(mux.getStats());
 
     }
 );
