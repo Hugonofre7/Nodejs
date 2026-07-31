@@ -14,6 +14,37 @@ function heavyComputation(n) {
 
 }
 
+function runIndividualWorker(n) {
+
+    return new Promise((resolve, reject) => {
+
+        const worker = new Worker('./worker.js');
+
+
+        worker.once('message', (result) => {
+
+            resolve(result);
+
+            worker.terminate();
+
+        });
+
+
+        worker.once('error', (error) => {
+
+            reject(error);
+
+        });
+
+
+        worker.postMessage({
+            n: n
+        });
+
+    });
+
+}
+
 function runWorker(n) {
 
     const worker = new Worker('./worker.js', {
@@ -36,14 +67,14 @@ function runWorker(n) {
 
 }
 
-runWorker(5_000_000_000);
-
+//runWorker(5_000_000_000);
+/*
 setTimeout(() => {
 
     console.log('Event Loop libre mientras Worker calcula');
 
 }, 0);
-
+*/
 class WorkerPool {
     constructor(size) {
 
@@ -115,21 +146,58 @@ availableWorker.worker.postMessage({
 
 const pool = new WorkerPool(4);
 
-async function testPool() {
+async function benchmark() {
 
-    const results = await Promise.all([
-        pool.run(5000000000),
-        pool.run(5000000000),
-        pool.run(5000000000),
-        pool.run(5000000000),
-        pool.run(5000000000)
-    ]);
+    const tasks = [
+        5000000000,
+        5000000000,
+        5000000000,
+        5000000000
+    ];
 
-    console.log(results);
+
+    console.log('--- Benchmark ---');
+
+
+    let start = Date.now();
+
+
+    for (const task of tasks) {
+
+        heavyComputation(task);
+
+    }
+
+
+    console.log(
+        `Síncrono: ${Date.now() - start}ms`
+    );
+
+    start = Date.now();
+
+    await Promise.all(
+        tasks.map(task => runIndividualWorker(task))
+    );
+
+    console.log(
+    `Workers individuales: ${Date.now() - start}ms`
+);
+
+
+    start = Date.now();
+
+    await Promise.all(
+        tasks.map(task => pool.run(task))
+    );
+
+    console.log(
+        `Worker Pool: ${Date.now() - start}ms`
+    );
 
 }
+benchmark();
 
-testPool();
+// testPool();
 
 
 /*
