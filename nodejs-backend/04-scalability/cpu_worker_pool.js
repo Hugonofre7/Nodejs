@@ -95,26 +95,30 @@ class WorkerPool {
 
     }
 
-    run(n) {
+run(n) {
 
-        return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
 
-            const availableWorker = this.workers.find(
-                item => item.busy === false
-            );
+        const availableWorker = this.workers.find(
+            item => item.busy === false
+        );
 
-            if (!availableWorker) {
 
-                this.queue.push({
-                    n: n,
-                    resolve: resolve,
-                    reject: reject
-                });
+        if (!availableWorker) {
 
-                return;
-            }
+            this.queue.push({
+                n: n,
+                resolve: resolve,
+                reject: reject
+            });
+
+            return;
+
+        }
+
 
         availableWorker.busy = true;
+
 
         availableWorker.worker.once('message', (result) => {
 
@@ -133,15 +137,38 @@ class WorkerPool {
 
             }
 
-});
+        });
 
-availableWorker.worker.postMessage({
-    n: n
-});
 
-});
+        availableWorker.worker.postMessage({
+            n: n
+        });
+
+    });
+
 }
+    terminate() {
 
+        for (const item of this.workers) {
+
+            item.worker.terminate();
+        }
+        
+}
+    getStats() {
+
+        const busy = this.workers.filter(
+            item => item.busy
+        ).length;
+
+        return {
+            size: this.workers.length,
+            busy: busy,
+            queued: this.queue.length,
+            available: this.workers.length - busy
+        };
+
+    }
 }
 
 const pool = new WorkerPool(4);
@@ -195,7 +222,17 @@ async function benchmark() {
     );
 
 }
-benchmark();
+async function main() {
+
+    await benchmark();
+
+    console.log(pool.getStats());
+
+    pool.terminate();
+
+}
+
+main();
 
 // testPool();
 
