@@ -11,8 +11,75 @@ if (cluster.isPrimary) {
 
     console.log(`CPUs detectadas: ${numCPUs}`);
 
-
     const heartbeats = new Map();
+
+    const startTime = Date.now();
+
+
+    const statsServer = http.createServer((req, res) => {
+
+
+        if (req.url === '/stats') {
+
+
+            const now = Date.now();
+
+            const workersStats = {};
+
+
+            for (const [pid, timestamp] of heartbeats) {
+
+
+                workersStats[pid] = {
+
+                    lastSeen: timestamp,
+
+                    status: now - timestamp < 5000
+                        ? "alive"
+                        : "dead"
+
+                };
+
+
+            }
+
+
+            const stats = {
+
+                master: process.pid,
+
+                workers: Object.keys(cluster.workers).length,
+
+                uptime:
+                    ((now - startTime) / 1000).toFixed(2),
+
+                heartbeats: workersStats
+
+            };
+
+
+            res.writeHead(200, {
+                'Content-Type': 'application/json'
+            });
+
+
+            res.end(
+                JSON.stringify(stats, null, 2)
+            );
+
+
+        }
+
+    });
+
+
+    statsServer.listen(3001, () => {
+
+        console.log(
+            `Stats server escuchando en puerto 3001`
+        );
+
+    });
 
 
     for (let i = 0; i < numCPUs; i++) {
