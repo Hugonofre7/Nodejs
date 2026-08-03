@@ -71,9 +71,25 @@ if (cluster.isPrimary) {
 
             }
 
+            if (message.type === "removeSession") {
+
+                stickyTable.delete(
+                    message.sessionId
+                );
+
+                console.log(
+                    `Sesión ${message.sessionId} eliminada de Sticky Table`
+                );
+
+                console.log(
+                    "Sticky table:",
+                    stickyTable
+                );
+
+            }
+
         });
     }
-
 
 
     const server = http.createServer((req, res) => {
@@ -243,6 +259,56 @@ if (cluster.isPrimary) {
                     ? {
                         message:"Sesión encontrada",
                         user:session,
+                        worker:process.pid
+                    }
+                    : {
+                        message:"Sesión no encontrada",
+                        worker:process.pid
+                    };
+
+
+                socket.write(
+                    "HTTP/1.1 200 OK\r\n" +
+                    "Content-Type: application/json\r\n" +
+                    "\r\n" +
+                    JSON.stringify(response)
+                );
+
+
+                socket.end();
+
+            }
+
+            if (request.startsWith("GET /logout")) {
+
+                const match = request.match(
+                    /sessionId=([^\s&]+)/
+                );
+
+
+                const sessionId = match
+                    ? match[1]
+                    : null;
+
+
+                const deleted = sessions.delete(
+                    sessionId
+                );
+
+
+                if (deleted) {
+
+                    process.send({
+                        type:"removeSession",
+                        sessionId
+                    });
+
+                }
+
+
+                const response = deleted
+                    ? {
+                        message:"Logout exitoso",
                         worker:process.pid
                     }
                     : {

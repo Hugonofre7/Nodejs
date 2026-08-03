@@ -29,25 +29,52 @@ async function login(){
 
 async function testStickySession(sessionId){
 
-    for(let i = 1; i <= 8; i++){
 
-        const response = await fetch(
-            `http://localhost:3000/profile?sessionId=${sessionId}`
-        );
+    console.log("\n--- PROFILE ANTES DEL LOGOUT ---");
 
 
-        const data = await response.json();
+    let response = await fetch(
+        `http://localhost:3000/profile?sessionId=${sessionId}`
+    );
 
 
-        console.log(
-            `Request ${i} atendida por Worker:`,
-            data.worker
-        );
+    let data = await response.json();
 
-    }
+
+    console.log(data);
+
+
+
+    console.log("\n--- LOGOUT ---");
+
+
+    response = await fetch(
+        `http://localhost:3000/logout?sessionId=${sessionId}`
+    );
+
+
+    data = await response.json();
+
+
+    console.log(data);
+
+
+
+    console.log("\n--- PROFILE DESPUÉS DEL LOGOUT ---");
+
+
+    response = await fetch(
+        `http://localhost:3000/profile?sessionId=${sessionId}`
+    );
+
+
+    data = await response.json();
+
+
+    console.log(data);
+
 
 }
-
 
 
 async function main(){
