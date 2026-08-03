@@ -29,6 +29,8 @@ if (cluster.isPrimary) {
 
     const workerMap = new Map();
 
+    const stickyTable = new Map();
+
 
     for (let i = 0; i < numCPUs; i++) {
 
@@ -47,10 +49,31 @@ if (cluster.isPrimary) {
             console.log(
                 `Worker disponible ${worker.process.pid}`
             );
-
         });
 
+        worker.on('message', (message) => {
+
+            if (message.type === "registerSession") {
+
+                stickyTable.set(
+                    message.sessionId,
+                    worker
+                );
+
+                console.log(
+                    "Sticky table:",
+                    stickyTable
+                );
+
+                console.log(
+                    `Sesión ${message.sessionId} registrada en Worker ${worker.process.pid}`
+                );
+
+            }
+
+        });
     }
+
 
 
     const server = http.createServer((req, res) => {
@@ -88,20 +111,44 @@ if (cluster.isPrimary) {
 
                 const sessionId = match[1];
 
-                workerIndex = getWorkerIndex(
-                    sessionId,
-                    workers.length
-                );
-
-
+                const worker = stickyTable.get(sessionId);
                 console.log(
-                    `Session ${sessionId} enviada a Worker ${workerIndex}`
+                    "Sticky lookup:",
+                    sessionId,
+                    worker ? worker.process.pid : "NO ENCONTRADO"
                 );
+
+
+                if (worker) {
+
+                    console.log(
+                        `Sesión ${sessionId} enviada a Worker ${worker.process.pid}`
+                    );
+
+
+                    worker.send(
+                        {
+                            type:"sticky",
+                            request
+                        },
+                        socket
+                    );
+
+                    return;
+
+                }
 
             }
 
 
             const worker = workers[workerIndex];
+            console.log(
+                `Índice calculado: ${workerIndex}`
+            );
+
+            console.log(
+                `PID destino: ${worker.process.pid}`
+            );
 
 
             worker.send(
@@ -148,6 +195,12 @@ if (cluster.isPrimary) {
                 sessions.set(sessionId,{
                     user:"Hugo",
                     role:"admin"
+                });
+
+                process.send({
+                    type: "registerSession",
+                    sessionId,
+                    pid: process.pid
                 });
 
 
@@ -215,84 +268,4 @@ if (cluster.isPrimary) {
 
     });
 
-
-
-    const server = http.createServer((req, res) => {
-
-
-        if (req.method === 'POST' && req.url === '/login') {
-
-            const sessionId = crypto.randomUUID();
-
-            sessions.set(sessionId, {
-                user:"Hugo",
-                role:"admin"
-            });
-
-
-            res.writeHead(200,{
-                'Content-Type':'application/json'
-            });
-
-
-            res.end(JSON.stringify({
-                message:"Login exitoso",
-                sessionId,
-                worker:process.pid
-            }));
-
-        }
-
-
-        if (req.method === 'GET' && req.url.startsWith('/profile')) {
-
-
-            const url = new URL(
-                req.url,
-                `http://${req.headers.host}`
-            );
-
-
-            const sessionId =
-                url.searchParams.get('sessionId');
-
-
-            const session =
-                sessions.get(sessionId);
-
-
-            res.writeHead(200,{
-                'Content-Type':'application/json'
-            });
-
-
-            if(session){
-
-                res.end(JSON.stringify({
-                    message:"Sesión encontrada",
-                    user:session,
-                    worker:process.pid
-                }));
-
-            } else {
-
-                res.end(JSON.stringify({
-                    message:"Sesión no encontrada",
-                    worker:process.pid
-                }));
-
-            }
-
-        }
-
-
-    });
-
-    server.listen(0, () => {
-
-        console.log(
-            `Worker ${process.pid} escuchando`
-        );
-
-    });
 }
